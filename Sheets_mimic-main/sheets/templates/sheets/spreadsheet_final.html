@@ -1,0 +1,249 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets Clone</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa;
+        }
+        .header {
+            background: #ffffff;
+            padding: 8px 16px;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .sheet-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #202124;
+            margin: 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: text;
+        }
+        .sheet-title:hover {
+            background: #f1f3f4;
+        }
+        .toolbar {
+            background: #ffffff;
+            padding: 8px 16px;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            border-right: 1px solid #dadce0;
+        }
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+        .btn-tool {
+            padding: 6px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            color: #5f6368;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-tool:hover {
+            background: #f1f3f4;
+        }
+        .btn-tool.active {
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+        .spreadsheet-container {
+            overflow: auto;
+            height: calc(100vh - 120px);
+            background: #ffffff;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 8px;
+            min-width: 100px;
+            height: 25px;
+            position: relative;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 500;
+            color: #5f6368;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .row-header {
+            background: #f8f9fa;
+            font-weight: 500;
+            color: #5f6368;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+        .selected {
+            outline: 2px solid #1a73e8;
+            outline-offset: -2px;
+        }
+        .formula-bar {
+            background: #ffffff;
+            padding: 8px 16px;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .formula-bar input {
+            flex-grow: 1;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-family: monospace;
+        }
+        .cell-info {
+            min-width: 100px;
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            color: #5f6368;
+        }
+        .merged-cell {
+            background-color: #f8f9fa;
+        }
+        .frozen {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #ffffff;
+        }
+        .duplicate {
+            background-color: #fff3e0;
+        }
+        .conditional-positive {
+            color: #0f9d58;
+        }
+        .conditional-negative {
+            color: #db4437;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1 class="sheet-title" contenteditable="true" id="sheet-name">Untitled Sheet</h1>
+        <button class="btn btn-success btn-sm" onclick="saveSpreadsheet()">Save</button>
+        <button class="btn btn-primary btn-sm" onclick="loadSpreadsheet()">Load</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="btn-tool" onclick="formatText('bold')" title="Bold"><b>B</b></button>
+            <button class="btn-tool" onclick="formatText('italic')" title="Italic"><i>I</i></button>
+            <button class="btn-tool" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+        </div>
+        
+        <div class="toolbar-group">
+            <select id="fontSize" class="form-select form-select-sm" style="width: 80px" onchange="changeFontSize()">
+                <option value="10px">10</option>
+                <option value="12px">12</option>
+                <option value="14px">14</option>
+                <option value="16px" selected>16</option>
+                <option value="18px">18</option>
+                <option value="20px">20</option>
+                <option value="24px">24</option>
+            </select>
+            <button class="btn-tool" onclick="document.getElementById('fontColor').click()" title="Text Color">
+                <span style="color: #1a73e8">A</span>
+            </button>
+            <input type="color" id="fontColor" class="d-none" onchange="changeFontColor()">
+        </div>
+
+        <div class="toolbar-group">
+            <button class="btn-tool" onclick="trimText()" title="Trim whitespace">TRIM</button>
+            <button class="btn-tool" onclick="convertText('upper')" title="Convert to uppercase">ABC</button>
+            <button class="btn-tool" onclick="convertText('lower')" title="Convert to lowercase">abc</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="btn-tool" onclick="autoSum()" title="Auto sum">∑</button>
+            <button class="btn-tool" onclick="calculate('ROUND')" title="Round number">123</button>
+            <button class="btn-tool" onclick="calculate('SQRT')" title="Square root">√</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="btn-tool" onclick="mergeCells()" title="Merge cells">Merge</button>
+            <button class="btn-tool" onclick="sortRange()" title="Sort range">Sort</button>
+            <button class="btn-tool" onclick="toggleFreeze()" title="Freeze panes">❄️</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="btn-tool" onclick="highlightDuplicates()" title="Highlight duplicates">🔍</button>
+            <button class="btn-tool" onclick="conditionalFormat()" title="Conditional formatting">📊</button>
+            <button class="btn-tool" onclick="removeDuplicates()" title="Remove duplicates">🚫</button>
+        </div>
+    </div>
+
+    <!-- Formula Bar -->
+    <div class="formula-bar">
+        <div class="cell-info" id="selected-cell"></div>
+        <input type="text" id="formula-bar" placeholder="Enter formula (e.g., =SUM(A1:A3))" onkeypress="applyFormula(event)">
+    </div>
+
+    <!-- Spreadsheet -->
+    <div class="spreadsheet-container">
+        <table id="spreadsheet" data-sheet-id="{{ spreadsheet.id }}">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for label in col_labels %}
+                        <th>{{ label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in rows %}
+                <tr>
+                    <th class="row-header">{{ i }}</th>
+                    {% for j in cols %}
+                        <td contenteditable="true" id="cell-{{ i }}-{{ j }}" 
+                            onclick="selectCell('{{ i }}', '{{ j }}')" 
+                            oninput="validateInput(this)"></td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script src="{% static 'js/script_updated.js' %}?v={{ timestamp }}"></script>
+    <script>
+        let savedCells = JSON.parse("{{ saved_cells|escapejs }}");
+        var SHEET_ID = "{{ spreadsheet.id }}";
+    </script>
+</body>
+</html>

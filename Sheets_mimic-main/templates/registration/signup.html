@@ -1,0 +1,275 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | SheetMaster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --google-blue: #1a73e8;
+            --google-blue-hover: #1557b0;
+            --border-color: #dadce0;
+            --text-color: #202124;
+            --error-color: #d93025;
+            --success-color: #0f9d58;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Roboto', sans-serif;
+            background: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+        }
+
+        .signup-container {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .signup-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 16px;
+        }
+
+        .signup-title {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .signup-subtitle {
+            font-size: 16px;
+            color: #5f6368;
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 13px 15px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--google-blue);
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+        }
+
+        .form-label {
+            font-size: 14px;
+            color: #5f6368;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .error-message {
+            color: var(--error-color);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .success-message {
+            color: var(--success-color);
+            font-size: 14px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .btn-signup {
+            background-color: var(--google-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-signup:hover {
+            background-color: var(--google-blue-hover);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .login-link a {
+            color: var(--google-blue);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .password-requirements {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 16px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .password-requirements h3 {
+            color: #5f6368;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .password-requirements ul {
+            list-style-type: none;
+            color: #5f6368;
+        }
+
+        .password-requirements li {
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-requirements li::before {
+            content: "•";
+            color: #5f6368;
+            margin-right: 8px;
+        }
+
+        .messages {
+            margin-bottom: 16px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .message.error {
+            background-color: #fce8e6;
+            color: var(--error-color);
+        }
+
+        .message.success {
+            background-color: #e6f4ea;
+            color: var(--success-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="signup-header">
+            <svg class="logo" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z" fill="#1a73e8"/>
+                <path d="M7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z" fill="#1a73e8"/>
+            </svg>
+            <h1 class="signup-title">Create your SheetMaster Account</h1>
+            <p class="signup-subtitle">Continue to SheetMaster</p>
+        </div>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="signup-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" class="form-control" required>
+                {% if form.username.errors %}
+                <div class="error-message">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_password1">Password</label>
+                <input type="password" name="password1" id="id_password1" class="form-control" required>
+                {% if form.password1.errors %}
+                <div class="error-message">{{ form.password1.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_password2">Confirm Password</label>
+                <input type="password" name="password2" id="id_password2" class="form-control" required>
+                {% if form.password2.errors %}
+                <div class="error-message">{{ form.password2.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="password-requirements">
+                <h3>Password requirements:</h3>
+                <ul>
+                    <li>At least 8 characters long</li>
+                    <li>Contains letters and numbers</li>
+                    <li>Passwords must match</li>
+                    <li>Cannot be too similar to your username</li>
+                    <li>Cannot be a commonly used password</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn-signup">Create Account</button>
+        </form>
+
+        <div class="login-link">
+            Already have an account? <a href="/accounts/login/">Sign in</a>
+        </div>
+    </div>
+
+    <script>
+        // Add client-side validation if needed
+        document.querySelector('.signup-form').addEventListener('submit', function(e) {
+            const password1 = document.getElementById('id_password1').value;
+            const password2 = document.getElementById('id_password2').value;
+            
+            if (password1 !== password2) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SheetMaster Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Google Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa;
+        }
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #202124;
+            text-decoration: none;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .welcome {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .create-btn {
+            background: #1a73e8;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+        .spreadsheets {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .spreadsheet-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: inherit;
+        }
+        .spreadsheet-card:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .logout-btn {
+            background: #ea4335;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #5f6368;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="{% url 'sheets:dashboard' %}" class="logo">SheetMaster</a>
+        <a href="{% url 'accounts:logout' %}" class="logout-btn">Logout</a>
+    </header>
+
+    <div class="container">
+        <h1 class="welcome">Welcome, {{ request.user.username }}!</h1>
+        
+        <a href="{% url 'sheets:create' %}" class="create-btn">Create New Spreadsheet</a>
+
+        <div class="spreadsheets">
+            {% if spreadsheets %}
+                {% for sheet in spreadsheets %}
+                    <a href="{% url 'sheets:spreadsheet' sheet.id %}" class="spreadsheet-card">
+                        <h3>{{ sheet.title }}</h3>
+                        <p>Created: {{ sheet.created_at|date:"M d, Y" }}</p>
+                    </a>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h2>No spreadsheets yet</h2>
+                    <p>Create your first spreadsheet to get started!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

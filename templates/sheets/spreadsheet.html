@@ -1,0 +1,418 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Previous head and style sections remain the same -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ spreadsheet.title }} - SheetMaster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Previous styles remain the same */
+        :root {
+            --border-color: #e0e0e0;
+            --header-bg: #f8f9fa;
+            --selected-color: #1a73e8;
+            --hover-color: #f1f3f4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Google Sans', sans-serif;
+            color: #202124;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
+            gap: 16px;
+        }
+
+        .sheet-title {
+            font-size: 18px;
+            font-weight: 500;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        .sheet-title:focus {
+            outline: none;
+            background: var(--hover-color);
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .btn-tool {
+            padding: 6px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            color: #5f6368;
+            cursor: pointer;
+        }
+
+        .btn-tool:hover {
+            background: var(--hover-color);
+        }
+
+        .btn-tool.active {
+            background: #e8f0fe;
+            color: var(--selected-color);
+        }
+
+        .formula-bar {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
+            gap: 8px;
+        }
+
+        .cell-info {
+            min-width: 100px;
+            padding: 6px 12px;
+            background: var(--header-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: #5f6368;
+        }
+
+        #formula-bar {
+            flex-grow: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-family: monospace;
+        }
+
+        .spreadsheet-container {
+            overflow: auto;
+            height: calc(100vh - 160px);
+            position: relative;
+        }
+
+        table {
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            min-width: 100px;
+            height: 25px;
+            padding: 4px 8px;
+            position: relative;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        th {
+            background: var(--header-bg);
+            font-weight: 500;
+            color: #5f6368;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .row-header {
+            background: var(--header-bg);
+            font-weight: 500;
+            color: #5f6368;
+            text-align: center;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        td.selected {
+            outline: 2px solid var(--selected-color);
+            outline-offset: -2px;
+        }
+
+        td:hover {
+            background-color: var(--hover-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <input type="text" class="sheet-title" value="{{ spreadsheet.title }}" id="sheet-name">
+        <button class="btn-tool" onclick="saveSpreadsheet()">Save</button>
+        <a href="{% url 'sheets:dashboard' %}" class="btn-tool">Back to Dashboard</a>
+    </div>
+
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="btn-tool" onclick="formatText('bold')" title="Bold (Ctrl+B)">B</button>
+            <button class="btn-tool" onclick="formatText('italic')" title="Italic (Ctrl+I)">I</button>
+            <button class="btn-tool" onclick="formatText('underline')" title="Underline (Ctrl+U)">U</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="btn-tool" onclick="autoSum()" title="Auto sum">∑</button>
+            <button class="btn-tool" onclick="calculate('ROUND')" title="Round number">123</button>
+            <button class="btn-tool" onclick="calculate('SQRT')" title="Square root">√</button>
+        </div>
+    </div>
+
+    <div class="formula-bar">
+        <div class="cell-info" id="selected-cell"></div>
+        <input type="text" id="formula-bar" placeholder="Enter formula (e.g., =SUM(A1:A3))">
+    </div>
+
+    <div class="spreadsheet-container">
+        <table id="spreadsheet" data-sheet-id="{{ spreadsheet.id }}">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for label in col_labels %}
+                        <th>{{ label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in rows %}
+                <tr>
+                    <th class="row-header">{{ i }}</th>
+                    {% for j in cols %}
+                        <td contenteditable="true" id="cell-{{ i }}-{{ j }}" 
+                            onclick="selectCell(this)" 
+                            oninput="handleInput(this)"></td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const SHEET_ID = "{{ spreadsheet.id }}";
+        const savedCells = JSON.parse('{{ saved_cells|escapejs }}');
+        let selectedCell = null;
+
+        // Initialize spreadsheet
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedCells();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.addEventListener('keydown', handleKeyboardNavigation);
+            document.getElementById('formula-bar').addEventListener('input', handleFormulaInput);
+        }
+
+        function loadSavedCells() {
+            if (typeof savedCells === 'object' && savedCells !== null) {
+                Object.entries(savedCells).forEach(([id, cellData]) => {
+                    const cell = document.getElementById(id);
+                    if (cell) {
+                        cell.textContent = cellData.content;
+                        if (cellData.style) {
+                            cell.setAttribute('style', cellData.style);
+                        }
+                    }
+                });
+            }
+        }
+
+        function selectCell(cell) {
+            if (selectedCell) {
+                selectedCell.classList.remove('selected');
+            }
+            selectedCell = cell;
+            cell.classList.add('selected');
+            updateCellInfo(cell);
+            updateFormulaBar(cell);
+        }
+
+        function updateCellInfo(cell) {
+            const coords = getCellCoordinates(cell);
+            document.getElementById('selected-cell').textContent = 
+                String.fromCharCode(65 + coords[1]) + (coords[0] + 1);
+        }
+
+        function updateFormulaBar(cell) {
+            document.getElementById('formula-bar').value = cell.textContent;
+        }
+
+        function handleFormulaInput(e) {
+            if (selectedCell) {
+                selectedCell.textContent = e.target.value;
+            }
+        }
+
+        function handleInput(cell) {
+            updateFormulaBar(cell);
+        }
+
+        function getCellCoordinates(cell) {
+            const matches = cell.id.match(/cell-(\d+)-(\d+)/);
+            return [parseInt(matches[1]), parseInt(matches[2])];
+        }
+
+        function handleKeyboardNavigation(e) {
+            if (!selectedCell) return;
+
+            const [row, col] = getCellCoordinates(selectedCell);
+            let nextCell;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    nextCell = document.querySelector(`#cell-${row-1}-${col}`);
+                    break;
+                case 'ArrowDown':
+                    nextCell = document.querySelector(`#cell-${row+1}-${col}`);
+                    break;
+                case 'ArrowLeft':
+                    nextCell = document.querySelector(`#cell-${row}-${col-1}`);
+                    break;
+                case 'ArrowRight':
+                    nextCell = document.querySelector(`#cell-${row}-${col+1}`);
+                    break;
+                case 'Tab':
+                    e.preventDefault();
+                    nextCell = document.querySelector(`#cell-${row}-${col+1}`);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    nextCell = document.querySelector(`#cell-${row+1}-${col}`);
+                    break;
+            }
+
+            if (nextCell) {
+                selectCell(nextCell);
+            }
+        }
+
+        function formatText(style) {
+            if (!selectedCell) return;
+
+            switch(style) {
+                case 'bold':
+                    selectedCell.style.fontWeight = 
+                        selectedCell.style.fontWeight === 'bold' ? 'normal' : 'bold';
+                    break;
+                case 'italic':
+                    selectedCell.style.fontStyle = 
+                        selectedCell.style.fontStyle === 'italic' ? 'normal' : 'italic';
+                    break;
+                case 'underline':
+                    selectedCell.style.textDecoration = 
+                        selectedCell.style.textDecoration === 'underline' ? 'none' : 'underline';
+                    break;
+            }
+        }
+
+        function autoSum() {
+            if (!selectedCell) return;
+
+            const [row, col] = getCellCoordinates(selectedCell);
+            let sum = 0;
+
+            // Sum the column above the selected cell
+            for (let i = 1; i < row; i++) {
+                const cell = document.querySelector(`#cell-${i}-${col}`);
+                const value = parseFloat(cell.textContent);
+                if (!isNaN(value)) {
+                    sum += value;
+                }
+            }
+
+            selectedCell.textContent = sum;
+        }
+
+        function calculate(operation) {
+            if (!selectedCell) return;
+
+            const value = parseFloat(selectedCell.textContent);
+            if (isNaN(value)) return;
+
+            switch(operation) {
+                case 'ROUND':
+                    selectedCell.textContent = Math.round(value);
+                    break;
+                case 'SQRT':
+                    selectedCell.textContent = Math.sqrt(value);
+                    break;
+            }
+        }
+
+        function saveSpreadsheet() {
+            const cells = {};
+            document.querySelectorAll('td').forEach(cell => {
+                if (cell.textContent || cell.getAttribute('style')) {
+                    cells[cell.id] = {
+                        content: cell.textContent,
+                        style: cell.getAttribute('style') || ''
+                    };
+                }
+            });
+
+            fetch(`/sheets/save/${SHEET_ID}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(cells)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Spreadsheet saved successfully!');
+                }
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
